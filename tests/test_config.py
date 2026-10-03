@@ -1,4 +1,4 @@
-from natulim_demo_marcosbolo.config import Settings
+from shopify_odoo_integration.config import Settings
 
 
 def test_settings_load_from_env(monkeypatch):

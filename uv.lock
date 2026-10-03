@@ -397,7 +397,6 @@ name = "natulim-demo-marcosbolo"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "certifi" },
     { name = "httpx" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -416,7 +415,6 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "certifi", specifier = ">=2026.7.22" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "pydantic", specifier = ">=2.13.5" },
     { name = "pydantic-settings", specifier = ">=2.15.0" },

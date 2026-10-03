@@ -1,15 +1,15 @@
-from pydantic_settings import BaseSettings
+from pydantic import SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    shopify_shop: str
-    shopify_client_id: str
-    shopify_client_secret: str
-    shopify_api_version: str = "2026-07"
-    odoo_url: str = ""
-    odoo_db: str = ""
-    odoo_api_key: str = ""
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    shopify_shop: str  # ej.: mi-tienda.myshopify.com
+    shopify_client_id: str
+    shopify_client_secret: SecretStr
+    shopify_api_version: str = "2026-07"
+
+    odoo_url: str = "http://localhost:8069"
+    odoo_db: str = "odoo19"
+    odoo_api_key: SecretStr

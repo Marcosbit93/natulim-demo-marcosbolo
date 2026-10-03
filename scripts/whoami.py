@@ -2,7 +2,6 @@ import ssl
 
 import httpx
 import truststore
-from pydantic import SecretStr
 
 from shopify_odoo_integration.config import Settings
 from shopify_odoo_integration.shopify.auth import ClientCredentialsTokenProvider
@@ -18,9 +17,7 @@ QUERY = """
 def main() -> None:
     s = Settings()
     provider = ClientCredentialsTokenProvider(
-        s.shopify_shop, 
-        s.shopify_client_id, 
-        SecretStr(s.shopify_client_secret)
+        s.shopify_shop, s.shopify_client_id, s.shopify_client_secret
     )
     url = f"https://{s.shopify_shop}/admin/api/{s.shopify_api_version}/graphql.json"
     response = httpx.post(
