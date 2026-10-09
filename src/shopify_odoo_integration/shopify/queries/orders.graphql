@@ -1,0 +1,18 @@
+query Orders($first: Int!, $after: String, $query: String) {
+  orders(first: $first, after: $after, query: $query, sortKey: UPDATED_AT) {
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      id
+      name
+      createdAt
+      updatedAt
+      displayFinancialStatus
+      displayFulfillmentStatus
+      currentTotalPriceSet { shopMoney { amount currencyCode } }
+      customer { id }
+      lineItems(first: 50) {
+        nodes { id title quantity sku variant { id } }
+      }
+    }
+  }
+}

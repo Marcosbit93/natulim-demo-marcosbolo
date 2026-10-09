@@ -1,0 +1,15 @@
+query InventoryLevels($first: Int!, $after: String) {
+  inventoryItems(first: $first, after: $after) {
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      id
+      sku
+      inventoryLevels(first: 10) {
+        nodes {
+          location { id name }
+          quantities(names: ["available", "on_hand"]) { name quantity }
+        }
+      }
+    }
+  }
+}

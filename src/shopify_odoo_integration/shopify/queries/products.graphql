@@ -1,0 +1,15 @@
+query Products($first: Int!, $after: String, $query: String) {
+  products(first: $first, after: $after, query: $query, sortKey: UPDATED_AT) {
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      id
+      title
+      handle
+      status
+      updatedAt
+      variants(first: 50) {
+        nodes { id sku title price inventoryItem { id } }
+      }
+    }
+  }
+}

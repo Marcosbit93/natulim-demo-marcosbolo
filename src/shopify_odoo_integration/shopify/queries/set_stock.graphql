@@ -1,0 +1,6 @@
+mutation SetStock($input: InventorySetQuantitiesInput!, $key: String!) {
+  inventorySetQuantities(input: $input) @idempotent(key: $key) {
+    inventoryAdjustmentGroup { id changes { name delta } }
+    userErrors { field message code }
+  }
+}
