@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ssl
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 import httpx
@@ -47,6 +47,7 @@ class Cost:
 class Result:
     data: dict[str, Any]
     cost: Cost | None
+    extensions: dict[str, Any] = field(default_factory=dict)
 
 
 def _parse_cost(body: dict[str, Any]) -> Cost | None:
@@ -84,17 +85,24 @@ class ShopifyGraphQL:
             verify=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT),
         )
 
-    def execute(self, query: str, variables: dict[str, Any] | None = None) -> Result:
+    def execute(
+        self,
+        query: str,
+        variables: dict[str, Any] | None = None,
+        *,
+        extra_headers: dict[str, str] | None = None,
+    ) -> Result:
+        headers = {**(extra_headers or {}), "X-Shopify-Access-Token": self._tokens.get()}
         response = self._http.post(
             self._url,
             json={"query": query, "variables": variables or {}},
-            headers={"X-Shopify-Access-Token": self._tokens.get()},
+            headers=headers,
         )
         response.raise_for_status()
         body = response.json()
         if body.get("errors"):
             raise GraphQLError(body["errors"])
-        return Result(body["data"], _parse_cost(body))
+        return Result(body["data"], _parse_cost(body), body.get("extensions", {}))
 
     def paginate(
         self,

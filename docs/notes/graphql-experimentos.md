@@ -34,7 +34,29 @@ Observado:
 
 Según la documentación de Shopify: el costo pedido se calcula antes de ejecutar y el real con los resultados; después de ejecutar, el balde recupera la diferencia entre ambos. Los escalares cuestan 0, los objetos 1 y las conexiones se dimensionan por `first`/`last`; la doc no da una fórmula exacta ni explica el comportamiento de arriba.
 
-Pendiente (próxima sesión): correr `cost-deep` (tres niveles de listas) para provocar `MAX_COST_EXCEEDED`, y mirar el encabezado `Shopify-GraphQL-Cost-Debug: 1` para ver el costo campo por campo.
+### Tres niveles de listas (`experimentos.py cost-deep`)
+
+| productos | variantes | niveles de inventario | Pedido | Real |
+|---|---|---|---|---|
+| 10 | 10 | 10 | 206 | 30 |
+| 50 | 50 | 10 | 611 | 13 |
+| 100 | 100 | 50 | rechazada: `MAX_COST_EXCEEDED` (cost 1487, maxCost 1000) | no se ejecutó |
+| 250 | 250 | 250 | rechazada: `MAX_COST_EXCEEDED` (cost 3181, maxCost 1000) | no se ejecutó |
+
+- Con tres niveles de listas sí aparece `MAX_COST_EXCEEDED`. El error trae `cost` y `maxCost` en `extensions`.
+- La consulta rechazada falla antes de ejecutarse (según la doc, el límite de 1000 se evalúa con el costo pedido).
+
+### Desglose por campo (`experimentos.py cost-debug`, encabezado `Shopify-GraphQL-Cost-Debug: 1`)
+
+| Campo | first 5 × 5 (total pedido) | first 250 × 250 (total pedido) |
+|---|---|---|
+| `products.nodes.variants` | 5 | 13 |
+| `products.nodes` | 6 | 14 |
+| `products` | 20 | 156 |
+
+- Los escalares (`id`) cuestan 0 y cada objeto de `nodes` cuesta 1.
+- Al pasar `first` de 5 a 250 (50 veces más), el total de `variants` pasó de 5 a 13. El costo pedido NO es `first × first`.
+- Sin explicar: por qué el costo real bajó (17 → 5) al subir `first`. El desglose solo muestra el costo pedido, no el real.
 
 ## Experimento 2 · Paginación con filtro (`experimentos.py filter`)
 
@@ -65,6 +87,10 @@ Observado:
 - Según la documentación, un duplicado con la misma clave y el mismo contenido debería recibir la respuesta cacheada sin reprocesar la operación. Lo que vi difiere.
 - Lo que sí protegió el stock fue el compare-and-set (`changeFromQuantity`), no se puede afirmar que lo haya hecho la clave de idempotencia.
 
-Hipótesis a descartar (próxima sesión, `experimentos.py idempotency-literal`): que la clave no se aplique cuando viaja como variable `$key` (la clase avisa que algunas versiones piden escribirla como texto en la consulta), o que la validación de `changeFromQuantity` se evalúe antes de la capa de idempotencia.
+Prueba con la clave escrita como texto en la consulta (`experimentos.py idempotency-literal`): resultado idéntico. El paso 2 volvió a dar `CHANGE_FROM_QUANTITY_STALE`. Queda descartado que el problema fuera pasar la clave como variable.
+
+Hipótesis que siguen abiertas: la validación de `changeFromQuantity` se evalúa antes de la capa de idempotencia, o el reintento de una operación ya exitosa no devuelve la respuesta cacheada en esta mutación.
+
+Experimentos propuestos para aislar la idempotencia: (1) misma clave con payload distinto, esperando `IDEMPOTENCY_KEY_PARAMETER_MISMATCH` (prueba que la capa de claves está activa); (2) `inventoryAdjustQuantities` (aplica diferencias, sin compare-and-set) dos veces con la misma clave.
 
 Datos de la documentación de Shopify para tener presentes: las claves se recuerdan 24 horas; la misma clave con parámetros distintos falla con `IDEMPOTENCY_KEY_PARAMETER_MISMATCH`; una operación aún en curso devuelve `IDEMPOTENCY_CONCURRENT_REQUEST`.

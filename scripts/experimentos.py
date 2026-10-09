@@ -3,6 +3,7 @@
 Uso:
     uv run python scripts/experimentos.py cost
     uv run python scripts/experimentos.py cost-deep
+    uv run python scripts/experimentos.py cost-debug
     uv run python scripts/experimentos.py filter
     uv run python scripts/experimentos.py idempotency
     uv run python scripts/experimentos.py idempotency-literal
@@ -98,6 +99,24 @@ def experiment_cost_deep() -> None:
     for p, v, n in DEEP_LADDER:
         label = f"products(first:{p}) x variants(first:{v}) x inventoryLevels(first:{n})"
         show_cost(gql, label, DEEP_QUERY, {"p": p, "v": v, "l": n})
+
+
+def experiment_cost_debug() -> None:
+    """Pide el desglose del costo campo por campo (encabezado Cost-Debug)."""
+    gql = make_client()
+    for p, v in [(5, 5), (250, 250)]:
+        print(f"\nproducts(first:{p}) x variants(first:{v})")
+        result = gql.execute(
+            COST_QUERY, {"p": p, "v": v}, extra_headers={"Shopify-GraphQL-Cost-Debug": "1"}
+        )
+        cost = result.extensions.get("cost", {})
+        print(f"  pedido={cost.get('requestedQueryCost')} real={cost.get('actualQueryCost')}")
+        for f in cost.get("fields", [])[:40]:
+            path = ".".join(str(x) for x in f.get("path", []))
+            print(
+                f"  {path:45} definido={f.get('definedCost')} "
+                f"total={f.get('requestedTotalCost')} hijos={f.get('requestedChildrenCost')}"
+            )
 
 
 # --- Experimento 2: paginación con filtro ------------------------------------
@@ -225,6 +244,7 @@ def experiment_idempotency(*, literal: bool = False) -> None:
 EXPERIMENTS = {
     "cost": experiment_cost,
     "cost-deep": experiment_cost_deep,
+    "cost-debug": experiment_cost_debug,
     "filter": experiment_filter,
     "idempotency": experiment_idempotency,
     "idempotency-literal": lambda: experiment_idempotency(literal=True),
